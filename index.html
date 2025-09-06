@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>$ / kWh Calculator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <h1>$ / kWh Calculator</h1>
+
+    <label>
+      kWh Usage:
+      <input type="number" id="kwh" placeholder="Enter kWh" min="0.01" step="0.01" inputmode="decimal" />
+    </label>
+
+    <label>
+      Dollar Amount:
+      <input type="number" id="dollars" placeholder="Enter $" min="0.01" step="0.01" inputmode="decimal" />
+    </label>
+
+    <button onclick="calculate()">Calculate</button>
+    <button onclick="resetCalculator()" class="reset-btn">Reset</button>
+
+    <div id="result"></div>
+
+    <button onclick="goNext()">Next (compare)</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
