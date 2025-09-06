@@ -1,38 +1,57 @@
+// ---------- Currency formatting ----------
+const USD = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 2
+});
+
 // ---------- Global state ----------
-let baselineRate = null;     // $/kWh (same whether inputs were monthly or annual)
-let usageMonthly = null;     // kWh per month (from calculator input)
-let usageAnnual  = null;     // kWh per year = usageMonthly * 12
-let savingsChart = null;     // Chart.js instance
+let baselineRate = null;   // $/kWh (Amount you pay now)
+let usageMonthly = null;   // kWh per month
+let usageAnnual  = null;   // kWh per year
+let savingsChart = null;   // Chart.js instance
 
 const YEARS_DEFAULT = 25;
 
+// Every-5-year bubble years (1-indexed): 5,10,15,20,25
+const BUBBLE_YEARS = [5, 10, 15, 20, 25];
+
 // ---------- Calculator ----------
 function calculate() {
-  const kwh = parseFloat(document.getElementById("kwh").value);        // monthly kWh
-  const dollars = parseFloat(document.getElementById("dollars").value); // monthly $
+  const kwhMonthly = parseFloat(document.getElementById("kwh").value);        // monthly kWh (optional if annual given)
+  const kwhAnnualAlt = parseFloat(document.getElementById("annualKwh").value); // alternate annual kWh
+  const dollarsMonthly = parseFloat(document.getElementById("dollars").value); // monthly $
+
   const resultDiv = document.getElementById("result");
 
-  if (isNaN(kwh) || isNaN(dollars) || kwh <= 0 || dollars <= 0) {
-    resultDiv.textContent = "Please enter positive numbers greater than zero.";
+  if (isNaN(dollarsMonthly) || dollarsMonthly <= 0) {
+    resultDiv.textContent = "Please enter the Dollar amount of your Monthly Utility Bill.";
     return;
   }
 
-  // $/kWh is dollars divided by kWh — works with monthly values just fine.
-  baselineRate = dollars / kwh;
+  // Decide which usage to use: prefer annual if provided
+  if (!isNaN(kwhAnnualAlt) && kwhAnnualAlt > 0) {
+    usageAnnual  = kwhAnnualAlt;
+    usageMonthly = kwhAnnualAlt / 12;
+  } else if (!isNaN(kwhMonthly) && kwhMonthly > 0) {
+    usageMonthly = kwhMonthly;
+    usageAnnual  = kwhMonthly * 12;
+  } else {
+    resultDiv.textContent = "Please enter either Monthly kWh OR Annual kWh.";
+    return;
+  }
 
-  // Store monthly and annual usage
-  usageMonthly = kwh;
-  usageAnnual  = kwh * 12;
+  // $/kWh computed with matching periods: ($/mo * 12) / (kWh/yr)
+  baselineRate = (dollarsMonthly * 12) / usageAnnual;
 
-  resultDiv.textContent = `$${baselineRate.toFixed(2)} per kWh (baseline)`;
-  setTabEnabled("nav-savings", true);
+  resultDiv.textContent = `${USD.format(baselineRate)} per kWh (Amount you pay now)`;
 }
 
 function resetCalculator() {
   document.getElementById("kwh").value = "";
+  document.getElementById("annualKwh").value = "";
   document.getElementById("dollars").value = "";
   document.getElementById("result").textContent = "";
-  // keep baseline/usage if you like; or clear them here if you want to force recalc
 }
 
 // ---------- Screens ----------
@@ -44,7 +63,7 @@ function showScreen(which) {
 
   if (which === "savings") {
     if (!baselineRate || !usageAnnual || baselineRate <= 0 || usageAnnual <= 0) {
-      alert("Please calculate a baseline on the Calculator tab first.");
+      alert("Please calculate your inputs on the Calculator tab first.");
       return;
     }
     calc.classList.add("hidden");
@@ -53,7 +72,7 @@ function showScreen(which) {
     navSav.classList.add("active");
 
     // Initialize display
-    document.getElementById("baselineDisplay").textContent = `$${baselineRate.toFixed(2)}`;
+    document.getElementById("baselineDisplay").textContent = USD.format(baselineRate);
     document.getElementById("usageMonthlyDisplay").textContent = usageMonthly.toFixed(2);
     document.getElementById("usageAnnualDisplay").textContent  = usageAnnual.toFixed(2);
 
@@ -68,18 +87,9 @@ function showScreen(which) {
 
 function backToCalc() { showScreen("calc"); }
 
-function setTabEnabled(id, enabled) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.disabled = !enabled;
-  el.style.opacity = enabled ? "1" : "0.5";
-  el.style.cursor = enabled ? "pointer" : "not-allowed";
-}
-setTabEnabled("nav-savings", false); // disabled until baseline calculated
-
 // ---------- Savings Over Time ----------
 function computeSeries(years, growthPctBaseline, growthPctFixed) {
-  // Returns arrays: labels, escalatedBaselineRate, escalatedFixedRate, baseCostAnnual, fixedCostAnnual, savingsAnnual, cumulative
+  // (Growth starts in year 2 via exponent (y-1))
   const fixedRateInput = document.getElementById("fixedRate");
   const fixed0 = parseFloat(fixedRateInput.value);
 
@@ -93,13 +103,13 @@ function computeSeries(years, growthPctBaseline, growthPctFixed) {
 
   let cum = 0;
   for (let y = 1; y <= years; y++) {
-    const baseRateY  = baselineRate * Math.pow(1 + growthPctBaseline, y - 1);
+    const baseRateY  = baselineRate * Math.pow(1 + growthPctBaseline, y - 1); // y=1 => no growth
     const fixedRateY = (isNaN(fixed0) || fixed0 <= 0)
       ? 0
       : fixed0 * Math.pow(1 + growthPctFixed, y - 1);
 
-    const bCost = baseRateY * usageAnnual;  // <-- annual usage
-    const fCost = fixedRateY * usageAnnual; // <-- annual usage
+    const bCost = baseRateY * usageAnnual;
+    const fCost = fixedRateY * usageAnnual;
     const sav = bCost - fCost;
 
     labels.push(`Year ${y}`);
@@ -122,7 +132,7 @@ function updateSavingsChart(requireInput = true) {
   const fixedGrowthEl = document.getElementById("fixedGrowthRate");
 
   if (!baselineRate || !usageAnnual) {
-    summary.textContent = "Please calculate a baseline on the Calculator tab first.";
+    summary.textContent = "Please calculate on the Calculator tab first.";
     destroyChartIfAny();
     clearYearTable();
     return;
@@ -149,9 +159,10 @@ function updateSavingsChart(requireInput = true) {
   if (!isNaN(fixed) && fixed > 0) {
     const total = cumulative[cumulative.length - 1] || 0;
     summary.innerHTML =
-      `Cumulative savings over ${YEARS_DEFAULT} years (Baseline growth ` +
-      `${(growthPctBaseline * 100).toFixed(1)}%/yr vs Fixed growth ` +
-      `${(growthPctFixed * 100).toFixed(1)}%/yr): <strong>$${total.toFixed(2)}</strong>`;
+      `Cumulative savings over ${YEARS_DEFAULT} years ` +
+      `(Amount you pay now growth ${(growthPctBaseline * 100).toFixed(1)}%/yr ` +
+      `vs Fixed growth ${(growthPctFixed * 100).toFixed(1)}%/yr): ` +
+      `<strong>${USD.format(total)}</strong>`;
   } else {
     summary.textContent = "Awaiting fixed rate to generate savings graph…";
   }
@@ -173,7 +184,7 @@ function updateSavingsChart(requireInput = true) {
   }
   if (showBaseline) {
     ds.push({
-      label: 'Baseline Cost ($/yr)',
+      label: 'Amount you pay now (Cost $/yr)',
       data: baseCost,
       tension: 0.2,
       borderWidth: 2,
@@ -190,7 +201,12 @@ function updateSavingsChart(requireInput = true) {
     });
   }
 
-  drawSavingsChart(labels, ds);
+  // Precompute monthly baseline cost for the bubble labels
+  const baseMonthly = baseCost.map(v => v / 12);
+
+  drawSavingsChart(labels, ds, baseCost, baseMonthly);
+
+  // Populate table with currency formatting
   fillYearTable(labels, escalatedBaselineRate, escalatedFixedRate, baseCost, fixedCost, savings, cumulative);
 }
 
@@ -201,9 +217,72 @@ function destroyChartIfAny() {
   }
 }
 
-function drawSavingsChart(labels, datasets) {
+// Custom plugin to draw currency bubbles above the baseline every 5 years
+const BubblePlugin = {
+  id: 'bubblePlugin',
+  afterDatasetsDraw(chart, args, pluginOptions) {
+    const { ctx, chartArea, scales } = chart;
+    const xScale = scales.x;
+    const yScale = scales.y;
+    const indices = pluginOptions?.indices || [];
+    const values  = pluginOptions?.values  || []; // baseline monthly $ by year (array length = labels)
+    if (!indices.length || !values.length) return;
+
+    ctx.save();
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+
+    indices.forEach((yearIndex) => {
+      if (yearIndex < 0 || yearIndex >= values.length) return;
+      const x = xScale.getPixelForValue(yearIndex);
+      const yVal = pluginOptions.baseLineArray?.[yearIndex];
+      if (typeof yVal !== 'number') return;
+
+      const y = yScale.getPixelForValue(yVal);
+      const text = `${USD.format(values[yearIndex])}/mo`;
+
+      // Bubble dims
+      const paddingX = 8;
+      const paddingY = 6;
+      const textW = ctx.measureText(text).width;
+      const boxW = textW + paddingX * 2;
+      const boxH = 24;
+      const boxX = x - boxW / 2;
+      const boxY = y - 10 - boxH; // 10px above the point
+
+      // Rounded rectangle
+      const radius = 10;
+      ctx.fillStyle = 'rgba(39, 174, 96, 0.9)'; // green-ish bubble
+      ctx.beginPath();
+      roundedRect(ctx, boxX, boxY, boxW, boxH, radius);
+      ctx.fill();
+
+      // Text
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(text, x, boxY + boxH - 8);
+    });
+
+    ctx.restore();
+  }
+};
+
+function roundedRect(ctx, x, y, w, h, r) {
+  const radius = Math.min(r, w/2, h/2);
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+}
+
+function drawSavingsChart(labels, datasets, baseCostYearly, baseMonthly) {
   const ctx = document.getElementById("savingsChart").getContext("2d");
   destroyChartIfAny();
+
+  // Map bubble years (1,5,10,15,20,25...) to zero-based indices
+  const bubbleIdx = BUBBLE_YEARS.map(y => y - 1);
 
   savingsChart = new Chart(ctx, {
     type: 'line',
@@ -211,12 +290,20 @@ function drawSavingsChart(labels, datasets) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: true } },
+      plugins: {
+        legend: { display: true },
+        bubblePlugin: {
+          indices: bubbleIdx,
+          values: baseMonthly,
+          baseLineArray: baseCostYearly
+        }
+      },
       scales: {
         x: { title: { display: true, text: 'Year' } },
         y: { title: { display: true, text: 'Dollars ($/yr)' } }
       }
-    }
+    },
+    plugins: [BubblePlugin] // register custom plugin per-chart
   });
 }
 
@@ -234,12 +321,12 @@ function fillYearTable(labels, escalatedBaselineRate, escalatedFixedRate, baseCo
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${i + 1}</td>
-      <td>$${escalatedBaselineRate[i].toFixed(4)}</td>
-      <td>$${escalatedFixedRate[i].toFixed(4)}</td>
-      <td>$${baseCost[i].toFixed(2)}</td>
-      <td>$${fixedCost[i].toFixed(2)}</td>
-      <td>$${savings[i].toFixed(2)}</td>
-      <td>$${cumulative[i].toFixed(2)}</td>
+      <td>${USD.format(escalatedBaselineRate[i])}</td>
+      <td>${USD.format(escalatedFixedRate[i])}</td>
+      <td>${USD.format(baseCost[i])}</td>
+      <td>${USD.format(fixedCost[i])}</td>
+      <td>${USD.format(savings[i])}</td>
+      <td>${USD.format(cumulative[i])}</td>
     `;
     tbody.appendChild(tr);
   }
@@ -252,7 +339,7 @@ function exportCsv() {
   const growthPctFixed = (parseFloat(fixedGrowthEl.value || "0") / 100);
 
   if (!baselineRate || !usageAnnual) {
-    alert("Please calculate a baseline first.");
+    alert("Please calculate first.");
     return;
   }
   const {
@@ -261,7 +348,7 @@ function exportCsv() {
   } = computeSeries(YEARS_DEFAULT, growthPctBaseline, growthPctFixed);
 
   const rows = [
-    ["Year", "Escalated Baseline $/kWh", "Escalated Fixed $/kWh", "Baseline Cost ($/yr)", "Fixed Cost ($/yr)", "Annual Savings ($/yr)", "Cumulative Savings ($)"],
+    ["Year", "Amount you pay now $/kWh", "Fixed $/kWh", "Amount you pay now (Cost $/yr)", "Fixed Cost ($/yr)", "Annual Savings ($/yr)", "Cumulative Savings ($)"],
   ];
   for (let i = 0; i < labels.length; i++) {
     rows.push([
@@ -280,7 +367,7 @@ function exportCsv() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `savings_monthlyInput_annualSavings_${YEARS_DEFAULT}yrs.csv`;
+  a.download = `savings_${YEARS_DEFAULT}yrs.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -317,7 +404,7 @@ function attachAutoClear(selector, clearFn) {
   });
 }
 // Calculator clears
-attachAutoClear("#kwh, #dollars", () => {
+attachAutoClear("#kwh, #annualKwh, #dollars", () => {
   document.getElementById("result").textContent = "";
 });
 

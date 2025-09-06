@@ -15,7 +15,7 @@ body {
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   width: 100%;
-  max-width: 560px;
+  max-width: 620px;
   margin: 24px;
 }
 
@@ -41,6 +41,18 @@ body {
   border-color: #007aff;
 }
 
+/* Green styling for Savings tab */
+.tab-green {
+  border-color: #27ae60;
+  color: #27ae60;
+  background: #f2fff6;
+}
+.tab-green.active {
+  background: #27ae60;
+  color: #fff;
+  border-color: #27ae60;
+}
+
 /* Headings & sections */
 h1 {
   font-size: 1.3em;
@@ -59,15 +71,6 @@ label {
   margin: 12px 0;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-}
-@media (min-width: 560px) {
-  .grid { grid-template-columns: 1fr 1fr 1fr; }
-}
-
 input[type="number"] {
   width: 100%;
   padding: 10px;
@@ -77,6 +80,14 @@ input[type="number"] {
   font-size: 1em;
 }
 
+/* Stack those three controls vertically */
+.stacked {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+/* Toggles */
 .toggles {
   display: flex;
   gap: 12px;
@@ -119,17 +130,6 @@ button.ghost:hover {
   background: rgba(0,122,255,0.08);
 }
 
-.btn-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  margin-top: 8px;
-}
-@media (min-width: 560px) {
-  .btn-row { grid-template-columns: 1fr 1fr; }
-  .btn-row button:nth-child(3) { grid-column: 1 / -1; }
-}
-
 /* Info/result */
 .info {
   background: #f7f9ff;
@@ -147,7 +147,7 @@ button.ghost:hover {
 /* Chart */
 .chart-wrap {
   margin-top: 16px;
-  height: 280px;
+  height: 320px; /* a tad taller for the bubbles */
 }
 
 /* Table */

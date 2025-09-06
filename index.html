@@ -8,13 +8,17 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.png" type="image/png">
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Chart.js for the savings graph -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="app">
+
+    <!-- NAV HEADER -->
     <div class="topbar">
       <button id="nav-calc" class="tab active" onclick="showScreen('calc')">Calculator</button>
-      <button id="nav-savings" class="tab" onclick="showScreen('savings')">Show Savings Over Time</button>
+      <button id="nav-savings" class="tab tab-green" onclick="showScreen('savings')">Show Savings Over Time</button>
     </div>
 
     <!-- CALCULATOR SCREEN -->
@@ -22,12 +26,17 @@
       <h1>$ / kWh Calculator</h1>
 
       <label>
-        kWh Usage <em>(monthly)</em>:
+        Enter Total Electricity used in 30 days from page 2 of your Utility Bill (monthly):
         <input type="number" id="kwh" placeholder="Enter kWh/mo" min="0.01" step="0.01" inputmode="decimal" />
       </label>
 
       <label>
-        Dollar Amount <em>(monthly)</em>:
+        Enter Annual Electricity used from page 2 of your Utility Bill:
+        <input type="number" id="annualKwh" placeholder="Enter kWh/yr (optional)" min="0.01" step="0.01" inputmode="decimal" />
+      </label>
+
+      <label>
+        Enter the Dollar amount of your Monthly Utility Bill:
         <input type="number" id="dollars" placeholder="Enter $/mo" min="0.01" step="0.01" inputmode="decimal" />
       </label>
 
@@ -42,11 +51,15 @@
       <h1>Show Savings Over Time</h1>
 
       <div class="info">
-        <div><strong>Baseline $/kWh (Year 1):</strong> <span id="baselineDisplay">—</span></div>
-        <div><strong>Usage:</strong> <span id="usageMonthlyDisplay">—</span> kWh/mo (<span id="usageAnnualDisplay">—</span> kWh/yr)</div>
+        <div><strong>Amount you pay now ($/kWh, Year 1):</strong> <span id="baselineDisplay">—</span></div>
+        <div>
+          <strong>Usage:</strong>
+          <span id="usageMonthlyDisplay">—</span> kWh/mo
+          (<span id="usageAnnualDisplay">—</span> kWh/yr)
+        </div>
       </div>
 
-      <div class="grid">
+      <div class="stacked">
         <label>
           Fixed comparison rate ($/kWh):
           <input type="number" id="fixedRate" placeholder="e.g. 0.12" min="0.0001" step="0.0001" inputmode="decimal" />
@@ -65,8 +78,8 @@
 
       <div class="toggles">
         <label><input type="checkbox" id="showSavings" checked> Show Savings line</label>
-        <label><input type="checkbox" id="showBaseline"> Show Baseline cost line</label>
-        <label><input type="checkbox" id="showFixed"> Show Fixed cost line</label>
+        <label><input type="checkbox" id="showBaseline" checked> Show Baseline cost line</label>
+        <label><input type="checkbox" id="showFixed" checked> Show Fixed cost line</label>
       </div>
 
       <div class="btn-row">
@@ -88,9 +101,9 @@
           <thead>
             <tr>
               <th>Year</th>
-              <th>Escalated Baseline $/kWh</th>
+              <th>Escalated Amount you pay now ($/kWh)</th>
               <th>Escalated Fixed $/kWh</th>
-              <th>Baseline Cost ($/yr)</th>
+              <th>Amount you pay now (Cost $/yr)</th>
               <th>Fixed Cost ($/yr)</th>
               <th>Annual Savings ($/yr)</th>
               <th>Cumulative Savings ($)</th>
@@ -100,6 +113,7 @@
         </table>
       </div>
     </section>
+
   </div>
 
   <script src="app.js"></script>
