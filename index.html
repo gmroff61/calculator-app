@@ -5,8 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Clean Energy Connection</title>
 
+  <!-- PWA + icon -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.png" type="image/png">
+
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
 
   <!-- Chart.js for the savings graph -->
@@ -15,9 +18,9 @@
 <body>
   <div class="app">
 
-    <!-- LOGO + TITLE -->
-<img src="CEC-Logo.jpg" alt="CEC Logo" class="cec-logo" />
-
+    <!-- LOGO + TITLE (centered) -->
+    <!-- Use CEC-Logo.jpg (recommended) or CEC%20Logo.jpg if the file has a space -->
+    <img src="CEC-Logo.jpg" alt="CEC Logo" class="cec-logo" />
     <h1 class="app-title">Clean Energy Connection</h1>
 
     <!-- NAV HEADER -->
@@ -28,21 +31,24 @@
 
     <!-- CALCULATOR SCREEN -->
     <section id="calc-screen">
-      <h2 class="centered">$ / kWh   What Rate (kWh) am I paying PSEG now?</h2>
+      <h2 class="centered">$ / kWh — What Rate (kWh) am I paying PSEG now?</h2>
 
-      <!-- (4) Move $ field to be FIRST and rename -->
+      <!-- $ field FIRST -->
       <label>
         Enter the Dollar amount of your Monthly PSEG Bill or your Monthly Balanced Billing Amount:
         <input type="number" id="dollars" placeholder="Enter $/mo" min="0.01" step="0.01" inputmode="decimal" />
       </label>
 
-      <!-- (5) Rename monthly kWh label -->
+      <!-- Monthly usage -->
       <label>
         Look on Page 2 of your PSEG Bill and Enter the Total Electricity used in the last 30 Days:
         <input type="number" id="kwh" placeholder="Enter kWh/mo" min="0.01" step="0.01" inputmode="decimal" />
       </label>
 
-      <!-- (6) Add alternative annual kWh field -->
+      <!-- OR separator -->
+      <div class="or-separator" aria-hidden="true">OR</div>
+
+      <!-- Annual usage alternative -->
       <label>
         Look on Page 1 of your PSEG Bill and Enter the Total of the last 12 months of your Historical Energy Usage:
         <input type="number" id="annualKwh" placeholder="Enter kWh/yr (optional)" min="0.01" step="0.01" inputmode="decimal" />
@@ -51,6 +57,7 @@
       <button onclick="calculate()">Calculate</button>
       <button onclick="resetCalculator()" class="secondary">Reset</button>
 
+      <!-- Result line: JS will set to "Rate you pay PSEG now: $X.XX $ / kWh" -->
       <div id="result" class="result"></div>
     </section>
 
@@ -59,15 +66,15 @@
       <h2 class="centered">Show Savings Over Time</h2>
 
       <div class="info">
-        <div><strong>Rate you pay PSEG now ($/kWh, Year 1):</strong> <span id="baselineDisplay"> </span></div>
+        <div><strong>Rate you pay PSEG now ($/kWh, Year 1):</strong> <span id="baselineDisplay">—</span></div>
         <div>
           <strong>Monthly Usage:</strong>
-          <span id="usageMonthlyDisplay"> </span> kWh/mo
-          (<span id="usageAnnualDisplay"> </span> kWh/yr)
+          <span id="usageMonthlyDisplay">—</span> kWh/mo
+          (<span id="usageAnnualDisplay">—</span> kWh/yr)
         </div>
       </div>
 
-      <!-- (8) vertical stacking of three fields -->
+      <!-- Vertical stack: Palmetto rate + growths -->
       <div class="stacked">
         <label>
           Enter Palmetto Fixed Rate ($/kWh):
@@ -81,7 +88,7 @@
 
         <label>
           Palmetto Annual Escalator Rate (%/yr):
-          <input type="number" id="fixedGrowthRate" value="0" min="-50" step="0.1" inputmode="decimal" />
+          <input type="number" id="fixedGrowthRate" value="0" min="-50" step="0.01" inputmode="decimal" />
         </label>
       </div>
 
@@ -98,6 +105,7 @@
         <button onclick="backToCalc()" class="ghost">Back to Calculator</button>
       </div>
 
+      <!-- Summary (cumulative savings will be highlighted in yellow by JS) -->
       <div class="result" id="savingsSummary"></div>
 
       <div class="chart-wrap">
@@ -125,6 +133,7 @@
 
   </div>
 
+  <!-- App logic -->
   <script src="app.js"></script>
 </body>
 </html>

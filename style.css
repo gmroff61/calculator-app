@@ -1,4 +1,4 @@
-/* Layout */
+/* ========== Base Layout ========== */
 body {
   font-family: Arial, sans-serif;
   display: flex;
@@ -19,19 +19,52 @@ body {
   margin: 24px;
 }
 
-/* Logo + Title */
+/* ========== Logo + Title (responsive) ========== */
 .cec-logo {
   display: block;
-  margin: 0 auto 8px auto;
-  max-width: 160px;
+  margin: 0 auto 6px auto;
+  max-width: 160px;   /* phones portrait default */
+  max-height: 18vh;   /* keep from dominating small screens */
+  width: auto;
   height: auto;
 }
+
 .app-title {
   text-align: center;
   margin: 0 0 12px 0;
+  font-size: 1.6em;
+  line-height: 1.2;
 }
 
-/* Top nav */
+/* Tablets / small laptops */
+@media (min-width: 600px) {
+  .cec-logo {
+    max-width: 220px;
+    max-height: 14vh;
+  }
+  .app-title {
+    font-size: 2em;
+  }
+}
+
+/* Desktops */
+@media (min-width: 1000px) {
+  .cec-logo {
+    max-width: 280px;
+    max-height: 12vh;
+  }
+  .app-title {
+    font-size: 2.2em;
+  }
+}
+
+/* Landscape orientation: shrink to keep tools visible */
+@media (orientation: landscape) {
+  .cec-logo { max-width: 120px; max-height: 12vh; }
+  .app-title { font-size: 1.4em; }
+}
+
+/* ========== Top nav ========== */
 .topbar {
   display: flex;
   gap: 8px;
@@ -45,6 +78,9 @@ body {
   background: #fafafa;
   border-radius: 8px;
   cursor: pointer;
+  white-space: normal;  /* allow wrapping for long labels */
+  text-align: center;
+  line-height: 1.1;
 }
 .tab.active {
   background: #007aff;
@@ -64,7 +100,19 @@ body {
   border-color: #27ae60;
 }
 
-/* Headings & sections */
+/* Landscape: compact nav */
+@media (orientation: landscape) {
+  .topbar { gap: 6px; margin-bottom: 8px; }
+  .tab { padding: 8px 10px; font-size: 0.95em; border-radius: 8px; }
+}
+@media (orientation: landscape) and (max-width: 740px) {
+  .tab { padding: 6px 8px; font-size: 0.88em; }
+}
+@media (orientation: landscape) and (max-width: 640px) {
+  .tab { padding: 5px 6px; font-size: 0.82em; }
+}
+
+/* ========== Headings & sections ========== */
 .centered { text-align: center; }
 h2.centered { margin-top: 4px; }
 
@@ -79,7 +127,7 @@ h3 {
 
 section.hidden { display: none; }
 
-/* Form */
+/* ========== Form ========== */
 label {
   display: block;
   margin: 12px 0;
@@ -94,11 +142,19 @@ input[type="number"] {
   font-size: 1em;
 }
 
-/* Stack those three controls vertically */
+/* Vertical stack for Palmetto + growth fields */
 .stacked {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
+}
+
+/* OR separator */
+.or-separator {
+  text-align: center;
+  margin: 4px 0;
+  font-weight: bold;
+  color: #666;
 }
 
 /* Toggles */
@@ -158,6 +214,15 @@ button.ghost:hover {
   font-weight: bold;
 }
 
+/* Highlighted summary (yellow) */
+.highlight {
+  background: #fff3b0;       /* soft yellow */
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
 /* Chart */
 .chart-wrap {
   margin-top: 16px;
@@ -181,42 +246,3 @@ th, td {
 }
 th { background: #fafafa; }
 td:first-child, th:first-child { text-align: center; }
-
-/* --- Responsive nav buttons --- */
-
-/* Allow multi-line label without overflowing */
-.tab {
-  white-space: normal;        /* let the long label wrap */
-  text-align: center;
-  line-height: 1.1;
-}
-
-/* Landscape: make buttons more compact so both fit comfortably */
-@media (orientation: landscape) {
-  .topbar {
-    gap: 6px;
-    margin-bottom: 8px;
-  }
-  .tab {
-    padding: 8px 10px;
-    font-size: 0.95em;
-    border-radius: 8px;
-  }
-}
-
-/* Extra-tight for small landscape widths (older iPhones) */
-@media (orientation: landscape) and (max-width: 740px) {
-  .tab {
-    padding: 6px 8px;
-    font-size: 0.88em;
-  }
-}
-
-/* Ultra-tight for very narrow landscape */
-@media (orientation: landscape) and (max-width: 640px) {
-  .tab {
-    padding: 5px 6px;
-    font-size: 0.82em;
-  }
-}
-
