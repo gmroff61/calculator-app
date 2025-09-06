@@ -14,10 +14,11 @@ let savingsChart = null;   // Chart.js instance
 
 const YEARS_DEFAULT = 25;
 
-// Bubble indices for savings amounts (years 1,5,10,15,20,25)
-const SAVINGS_BUBBLE_YEARS = [1, 5, 10, 15, 20, 25].map(y => y - 1);
-// Bubble indices for PSEG monthly labels (years 5,10,15,20,25)
-const PSEG_BUBBLE_YEARS = [5, 10, 15, 20, 25].map(y => y - 1);
+// Bubble indices (0-based):
+// Savings bubbles now only at years 5,10,15,20
+const SAVINGS_BUBBLE_YEARS = [5, 10, 15, 20].map(y => y - 1);
+// PSEG monthly bubbles now only at years 5,10,15,20
+const PSEG_BUBBLE_YEARS = [5, 10, 15, 20].map(y => y - 1);
 
 // ========== Calculator ==========
 function calculate() {
@@ -201,7 +202,7 @@ function destroyChartIfAny() {
   }
 }
 
-// ========== Custom Plugins (smaller bubbles) ==========
+// ========== Custom Plugins (smaller bubbles, no year 1 or 25) ==========
 const SavingsBubblePlugin = {
   id: 'savingsBubblePlugin',
   afterDatasetsDraw(chart, args, pluginOptions) {
@@ -219,16 +220,15 @@ const SavingsBubblePlugin = {
       const xPix = x.getPixelForValue(i);
       const yPix = y.getPixelForValue(savingsArray[i]);
 
-      const isYear25 = (i === 24);
       const txt = USD.format(savingsArray[i]);
-      ctx.font = isYear25 ? 'bold 10px Arial' : '10px Arial';
+      ctx.font = '10px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
 
       const paddingX = 4, paddingY = 3;
       const textW = ctx.measureText(txt).width;
       const boxW = textW + paddingX * 2;
-      const boxH = 16;  // trimmed bubble height
+      const boxH = 16;
       let boxX = xPix - boxW / 2;
       let boxY = yPix - 10 - boxH;
 
@@ -408,4 +408,30 @@ function downloadChartPng() {
 }
 
 // ========== Keyboard: Enter triggers the right action ==========
-document.addEvent
+document.addEventListener("keydown", function (event) {
+  if (event.key !== "Enter") return;
+  const calcVisible = !document.getElementById("calc-screen").classList.contains("hidden");
+  if (calcVisible) {
+    calculate();
+  } else {
+    updateSavingsChart();
+  }
+});
+
+// ========== Reactivity ==========
+function attachAutoClear(selector, clearFn) {
+  document.querySelectorAll(selector).forEach((input) => {
+    input.addEventListener("input", clearFn);
+  });
+}
+attachAutoClear("#dollars, #kwh, #annualKwh", () => {
+  document.getElementById("result").textContent = "";
+});
+["fixedRate", "growthRate", "fixedGrowthRate"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("input", () => updateSavingsChart(false));
+});
+["showSavings", "showBaseline", "showFixed"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("change", () => updateSavingsChart(false));
+});
