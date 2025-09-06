@@ -1,14 +1,15 @@
 // ---------- Global state ----------
-let baselineRate = null; // $/kWh from calculator (year 1)
-let lastUsage   = null;  // annual kWh usage
-let savingsChart = null; // Chart.js instance
+let baselineRate = null;     // $/kWh (same whether inputs were monthly or annual)
+let usageMonthly = null;     // kWh per month (from calculator input)
+let usageAnnual  = null;     // kWh per year = usageMonthly * 12
+let savingsChart = null;     // Chart.js instance
 
 const YEARS_DEFAULT = 25;
 
 // ---------- Calculator ----------
 function calculate() {
-  const kwh = parseFloat(document.getElementById("kwh").value);
-  const dollars = parseFloat(document.getElementById("dollars").value);
+  const kwh = parseFloat(document.getElementById("kwh").value);        // monthly kWh
+  const dollars = parseFloat(document.getElementById("dollars").value); // monthly $
   const resultDiv = document.getElementById("result");
 
   if (isNaN(kwh) || isNaN(dollars) || kwh <= 0 || dollars <= 0) {
@@ -16,8 +17,13 @@ function calculate() {
     return;
   }
 
-  baselineRate = dollars / kwh; // $/kWh
-  lastUsage = kwh;              // interpret as annual kWh usage
+  // $/kWh is dollars divided by kWh — works with monthly values just fine.
+  baselineRate = dollars / kwh;
+
+  // Store monthly and annual usage
+  usageMonthly = kwh;
+  usageAnnual  = kwh * 12;
+
   resultDiv.textContent = `$${baselineRate.toFixed(2)} per kWh (baseline)`;
   setTabEnabled("nav-savings", true);
 }
@@ -26,7 +32,7 @@ function resetCalculator() {
   document.getElementById("kwh").value = "";
   document.getElementById("dollars").value = "";
   document.getElementById("result").textContent = "";
-  // keep baseline so user can still view savings if they want
+  // keep baseline/usage if you like; or clear them here if you want to force recalc
 }
 
 // ---------- Screens ----------
@@ -37,8 +43,8 @@ function showScreen(which) {
   const navSav  = document.getElementById("nav-savings");
 
   if (which === "savings") {
-    if (!baselineRate || !lastUsage || baselineRate <= 0 || lastUsage <= 0) {
-      alert("Please calculate a baseline and usage on the Calculator tab first.");
+    if (!baselineRate || !usageAnnual || baselineRate <= 0 || usageAnnual <= 0) {
+      alert("Please calculate a baseline on the Calculator tab first.");
       return;
     }
     calc.classList.add("hidden");
@@ -48,7 +54,8 @@ function showScreen(which) {
 
     // Initialize display
     document.getElementById("baselineDisplay").textContent = `$${baselineRate.toFixed(2)}`;
-    document.getElementById("usageDisplay").textContent = lastUsage.toFixed(2);
+    document.getElementById("usageMonthlyDisplay").textContent = usageMonthly.toFixed(2);
+    document.getElementById("usageAnnualDisplay").textContent  = usageAnnual.toFixed(2);
 
     updateSavingsChart(false); // draw if inputs present
   } else {
@@ -72,17 +79,17 @@ setTabEnabled("nav-savings", false); // disabled until baseline calculated
 
 // ---------- Savings Over Time ----------
 function computeSeries(years, growthPctBaseline, growthPctFixed) {
-  // Returns arrays: labels, escalatedBaselineRate, escalatedFixedRate, baseCost, fixedCost, savings, cumulative
+  // Returns arrays: labels, escalatedBaselineRate, escalatedFixedRate, baseCostAnnual, fixedCostAnnual, savingsAnnual, cumulative
   const fixedRateInput = document.getElementById("fixedRate");
   const fixed0 = parseFloat(fixedRateInput.value);
 
   const labels = [];
   const escalatedBaselineRate = [];
   const escalatedFixedRate = [];
-  const baseCost = [];
-  const fixedCost = [];
-  const savings = [];
-  const cumulative = [];
+  const baseCost = [];   // annual $
+  const fixedCost = [];  // annual $
+  const savings = [];    // annual $
+  const cumulative = []; // cumulative $
 
   let cum = 0;
   for (let y = 1; y <= years; y++) {
@@ -91,8 +98,8 @@ function computeSeries(years, growthPctBaseline, growthPctFixed) {
       ? 0
       : fixed0 * Math.pow(1 + growthPctFixed, y - 1);
 
-    const bCost = baseRateY * lastUsage;
-    const fCost = fixedRateY * lastUsage;
+    const bCost = baseRateY * usageAnnual;  // <-- annual usage
+    const fCost = fixedRateY * usageAnnual; // <-- annual usage
     const sav = bCost - fCost;
 
     labels.push(`Year ${y}`);
@@ -114,7 +121,7 @@ function updateSavingsChart(requireInput = true) {
   const growthEl = document.getElementById("growthRate");
   const fixedGrowthEl = document.getElementById("fixedGrowthRate");
 
-  if (!baselineRate || !lastUsage) {
+  if (!baselineRate || !usageAnnual) {
     summary.textContent = "Please calculate a baseline on the Calculator tab first.";
     destroyChartIfAny();
     clearYearTable();
@@ -123,7 +130,7 @@ function updateSavingsChart(requireInput = true) {
 
   // Parse growth % -> decimals
   const growthPctBaseline = Math.max(0, parseFloat(growthEl.value || "3.5")) / 100;
-  const growthPctFixed    = (parseFloat(fixedGrowthEl.value || "0") / 100); // allow negative as well
+  const growthPctFixed    = (parseFloat(fixedGrowthEl.value || "0") / 100); // can be negative
   const fixed = parseFloat(fixedRateInput.value);
 
   if (requireInput && (isNaN(fixed) || fixed <= 0)) {
@@ -138,7 +145,7 @@ function updateSavingsChart(requireInput = true) {
     baseCost, fixedCost, savings, cumulative
   } = computeSeries(YEARS_DEFAULT, growthPctBaseline, growthPctFixed);
 
-  // Summary text (only if fixed present)
+  // Summary (only if fixed entered)
   if (!isNaN(fixed) && fixed > 0) {
     const total = cumulative[cumulative.length - 1] || 0;
     summary.innerHTML =
@@ -149,7 +156,7 @@ function updateSavingsChart(requireInput = true) {
     summary.textContent = "Awaiting fixed rate to generate savings graph…";
   }
 
-  // Build datasets based on toggles
+  // Build datasets from toggles
   const ds = [];
   const showSavings = document.getElementById("showSavings").checked;
   const showBaseline = document.getElementById("showBaseline").checked;
@@ -157,7 +164,7 @@ function updateSavingsChart(requireInput = true) {
 
   if (showSavings) {
     ds.push({
-      label: 'Annual Savings ($)',
+      label: 'Annual Savings ($/yr)',
       data: savings,
       tension: 0.25,
       borderWidth: 2,
@@ -166,7 +173,7 @@ function updateSavingsChart(requireInput = true) {
   }
   if (showBaseline) {
     ds.push({
-      label: 'Baseline Cost ($)',
+      label: 'Baseline Cost ($/yr)',
       data: baseCost,
       tension: 0.2,
       borderWidth: 2,
@@ -175,7 +182,7 @@ function updateSavingsChart(requireInput = true) {
   }
   if (showFixed) {
     ds.push({
-      label: 'Fixed Cost ($)',
+      label: 'Fixed Cost ($/yr)',
       data: fixedCost,
       tension: 0.2,
       borderWidth: 2,
@@ -184,8 +191,6 @@ function updateSavingsChart(requireInput = true) {
   }
 
   drawSavingsChart(labels, ds);
-
-  // Populate table
   fillYearTable(labels, escalatedBaselineRate, escalatedFixedRate, baseCost, fixedCost, savings, cumulative);
 }
 
@@ -209,7 +214,7 @@ function drawSavingsChart(labels, datasets) {
       plugins: { legend: { display: true } },
       scales: {
         x: { title: { display: true, text: 'Year' } },
-        y: { title: { display: true, text: 'Dollars ($)' } }
+        y: { title: { display: true, text: 'Dollars ($/yr)' } }
       }
     }
   });
@@ -246,7 +251,7 @@ function exportCsv() {
   const growthPctBaseline = Math.max(0, parseFloat(growthEl.value || "3.5")) / 100;
   const growthPctFixed = (parseFloat(fixedGrowthEl.value || "0") / 100);
 
-  if (!baselineRate || !lastUsage) {
+  if (!baselineRate || !usageAnnual) {
     alert("Please calculate a baseline first.");
     return;
   }
@@ -256,7 +261,7 @@ function exportCsv() {
   } = computeSeries(YEARS_DEFAULT, growthPctBaseline, growthPctFixed);
 
   const rows = [
-    ["Year", "Escalated Baseline $/kWh", "Escalated Fixed $/kWh", "Baseline Cost ($)", "Fixed Cost ($)", "Annual Savings ($)", "Cumulative Savings ($)"],
+    ["Year", "Escalated Baseline $/kWh", "Escalated Fixed $/kWh", "Baseline Cost ($/yr)", "Fixed Cost ($/yr)", "Annual Savings ($/yr)", "Cumulative Savings ($)"],
   ];
   for (let i = 0; i < labels.length; i++) {
     rows.push([
@@ -275,7 +280,7 @@ function exportCsv() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `savings_${(growthPctBaseline*100).toFixed(1)}pct_base_${(growthPctFixed*100).toFixed(1)}pct_fixed_${YEARS_DEFAULT}yrs.csv`;
+  a.download = `savings_monthlyInput_annualSavings_${YEARS_DEFAULT}yrs.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

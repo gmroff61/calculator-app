@@ -8,14 +8,10 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.png" type="image/png">
   <link rel="stylesheet" href="style.css" />
-
-  <!-- Chart.js for the savings graph -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="app">
-
-    <!-- NAV HEADER -->
     <div class="topbar">
       <button id="nav-calc" class="tab active" onclick="showScreen('calc')">Calculator</button>
       <button id="nav-savings" class="tab" onclick="showScreen('savings')">Show Savings Over Time</button>
@@ -26,13 +22,13 @@
       <h1>$ / kWh Calculator</h1>
 
       <label>
-        kWh Usage (annual):
-        <input type="number" id="kwh" placeholder="Enter kWh/yr" min="0.01" step="0.01" inputmode="decimal" />
+        kWh Usage <em>(monthly)</em>:
+        <input type="number" id="kwh" placeholder="Enter kWh/mo" min="0.01" step="0.01" inputmode="decimal" />
       </label>
 
       <label>
-        Dollar Amount:
-        <input type="number" id="dollars" placeholder="Enter $" min="0.01" step="0.01" inputmode="decimal" />
+        Dollar Amount <em>(monthly)</em>:
+        <input type="number" id="dollars" placeholder="Enter $/mo" min="0.01" step="0.01" inputmode="decimal" />
       </label>
 
       <button onclick="calculate()">Calculate</button>
@@ -47,7 +43,7 @@
 
       <div class="info">
         <div><strong>Baseline $/kWh (Year 1):</strong> <span id="baselineDisplay">—</span></div>
-        <div><strong>Annual usage (kWh):</strong> <span id="usageDisplay">—</span></div>
+        <div><strong>Usage:</strong> <span id="usageMonthlyDisplay">—</span> kWh/mo (<span id="usageAnnualDisplay">—</span> kWh/yr)</div>
       </div>
 
       <div class="grid">
@@ -94,9 +90,9 @@
               <th>Year</th>
               <th>Escalated Baseline $/kWh</th>
               <th>Escalated Fixed $/kWh</th>
-              <th>Baseline Cost ($)</th>
-              <th>Fixed Cost ($)</th>
-              <th>Annual Savings ($)</th>
+              <th>Baseline Cost ($/yr)</th>
+              <th>Fixed Cost ($/yr)</th>
+              <th>Annual Savings ($/yr)</th>
               <th>Cumulative Savings ($)</th>
             </tr>
           </thead>
@@ -104,7 +100,6 @@
         </table>
       </div>
     </section>
-
   </div>
 
   <script src="app.js"></script>
