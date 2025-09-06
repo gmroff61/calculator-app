@@ -216,7 +216,7 @@ function destroyChartIfAny() {
   }
 }
 
-// ========== Custom Plugins ==========
+// ========== Custom Plugins (smaller bubbles) ==========
 
 // Savings bubbles (years 1,5,10,15,20,25). Year 25 bigger + bold + edge-clipping fix.
 const SavingsBubblePlugin = {
@@ -239,14 +239,14 @@ const SavingsBubblePlugin = {
 
       const isYear25 = (i === 24);
       const txt = USD.format(savingsArray[i]);
-      ctx.font = isYear25 ? 'bold 13px Arial' : '12px Arial';
+      ctx.font = isYear25 ? 'bold 12px Arial' : '11px Arial'; // smaller font
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
 
-      const paddingX = 8, paddingY = 6;
+      const paddingX = 6, paddingY = 4; // tighter padding
       const textW = ctx.measureText(txt).width;
       const boxW = textW + paddingX * 2;
-      const boxH = isYear25 ? 28 : 24;
+      const boxH = isYear25 ? 22 : 18;  // smaller bubbles
       let boxX = xPix - boxW / 2;
       let boxY = yPix - 10 - boxH; // try above
 
@@ -261,7 +261,7 @@ const SavingsBubblePlugin = {
       ctx.fill();
 
       ctx.fillStyle = '#fff';
-      ctx.fillText(txt, xPix, boxY + boxH - (isYear25 ? 9 : 8));
+      ctx.fillText(txt, xPix, boxY + boxH - (isYear25 ? 7 : 6));
     });
     ctx.restore();
   }
@@ -284,7 +284,7 @@ const PsegMonthlyBubblePlugin = {
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.font = '12px Arial';
+    ctx.font = '11px Arial'; // smaller font
 
     indices.forEach((i) => {
       if (i < 0 || i >= annualArray.length) return;
@@ -293,10 +293,10 @@ const PsegMonthlyBubblePlugin = {
       const yPix = y.getPixelForValue(annualArray[i]);  // anchor at the PSEG annual point
 
       const text = `${USD.format(monthlyValue)}/mo`;
-      const paddingX = 8, paddingY = 6;
+      const paddingX = 6, paddingY = 4; // tighter padding
       const textW = ctx.measureText(text).width;
       const boxW = textW + paddingX * 2;
-      const boxH = 24;
+      const boxH = 18;   // smaller bubbles
       let boxX = xPix - boxW / 2;
       let boxY = yPix - 10 - boxH; // above the point
 
@@ -313,7 +313,7 @@ const PsegMonthlyBubblePlugin = {
 
       // Text
       ctx.fillStyle = '#fff';
-      ctx.fillText(text, xPix, boxY + boxH - 8);
+      ctx.fillText(text, xPix, boxY + boxH - 6);
     });
 
     ctx.restore();
