@@ -15,8 +15,20 @@ body {
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   width: 100%;
-  max-width: 620px;
+  max-width: 680px;
   margin: 24px;
+}
+
+/* Logo + Title */
+.cec-logo {
+  display: block;
+  margin: 0 auto 8px auto;
+  max-width: 160px;
+  height: auto;
+}
+.app-title {
+  text-align: center;
+  margin: 0 0 12px 0;
 }
 
 /* Top nav */
@@ -34,7 +46,6 @@ body {
   border-radius: 8px;
   cursor: pointer;
 }
-
 .tab.active {
   background: #007aff;
   color: #fff;
@@ -54,12 +65,15 @@ body {
 }
 
 /* Headings & sections */
-h1 {
-  font-size: 1.3em;
+.centered { text-align: center; }
+h2.centered { margin-top: 4px; }
+
+h2 {
+  font-size: 1.2em;
   margin: 6px 0 14px 0;
 }
-h2 {
-  font-size: 1.1em;
+h3 {
+  font-size: 1.05em;
   margin-top: 20px;
 }
 
@@ -84,7 +98,7 @@ input[type="number"] {
 .stacked {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: 10px;
 }
 
 /* Toggles */
@@ -147,7 +161,7 @@ button.ghost:hover {
 /* Chart */
 .chart-wrap {
   margin-top: 16px;
-  height: 320px; /* a tad taller for the bubbles */
+  height: 320px; /* taller to leave room for bubbles */
 }
 
 /* Table */
@@ -167,3 +181,42 @@ th, td {
 }
 th { background: #fafafa; }
 td:first-child, th:first-child { text-align: center; }
+
+/* --- Responsive nav buttons --- */
+
+/* Allow multi-line label without overflowing */
+.tab {
+  white-space: normal;        /* let the long label wrap */
+  text-align: center;
+  line-height: 1.1;
+}
+
+/* Landscape: make buttons more compact so both fit comfortably */
+@media (orientation: landscape) {
+  .topbar {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .tab {
+    padding: 8px 10px;
+    font-size: 0.95em;
+    border-radius: 8px;
+  }
+}
+
+/* Extra-tight for small landscape widths (older iPhones) */
+@media (orientation: landscape) and (max-width: 740px) {
+  .tab {
+    padding: 6px 8px;
+    font-size: 0.88em;
+  }
+}
+
+/* Ultra-tight for very narrow landscape */
+@media (orientation: landscape) and (max-width: 640px) {
+  .tab {
+    padding: 5px 6px;
+    font-size: 0.82em;
+  }
+}
+

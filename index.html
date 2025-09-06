@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>$ / kWh Calculator</title>
+  <title>Clean Energy Connection</title>
 
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.png" type="image/png">
@@ -15,6 +15,11 @@
 <body>
   <div class="app">
 
+    <!-- LOGO + TITLE -->
+<img src="CEC-Logo.jpg" alt="CEC Logo" class="cec-logo" />
+
+    <h1 class="app-title">Clean Energy Connection</h1>
+
     <!-- NAV HEADER -->
     <div class="topbar">
       <button id="nav-calc" class="tab active" onclick="showScreen('calc')">Calculator</button>
@@ -23,21 +28,24 @@
 
     <!-- CALCULATOR SCREEN -->
     <section id="calc-screen">
-      <h1>$ / kWh Calculator</h1>
+      <h2 class="centered">$ / kWh   What Rate (kWh) am I paying PSEG now?</h2>
 
+      <!-- (4) Move $ field to be FIRST and rename -->
       <label>
-        Enter Total Electricity used in 30 days from page 2 of your Utility Bill (monthly):
+        Enter the Dollar amount of your Monthly PSEG Bill or your Monthly Balanced Billing Amount:
+        <input type="number" id="dollars" placeholder="Enter $/mo" min="0.01" step="0.01" inputmode="decimal" />
+      </label>
+
+      <!-- (5) Rename monthly kWh label -->
+      <label>
+        Look on Page 2 of your PSEG Bill and Enter the Total Electricity used in the last 30 Days:
         <input type="number" id="kwh" placeholder="Enter kWh/mo" min="0.01" step="0.01" inputmode="decimal" />
       </label>
 
+      <!-- (6) Add alternative annual kWh field -->
       <label>
-        Enter Annual Electricity used from page 2 of your Utility Bill:
+        Look on Page 1 of your PSEG Bill and Enter the Total of the last 12 months of your Historical Energy Usage:
         <input type="number" id="annualKwh" placeholder="Enter kWh/yr (optional)" min="0.01" step="0.01" inputmode="decimal" />
-      </label>
-
-      <label>
-        Enter the Dollar amount of your Monthly Utility Bill:
-        <input type="number" id="dollars" placeholder="Enter $/mo" min="0.01" step="0.01" inputmode="decimal" />
       </label>
 
       <button onclick="calculate()">Calculate</button>
@@ -48,38 +56,39 @@
 
     <!-- SAVINGS OVER TIME SCREEN -->
     <section id="savings-screen" class="hidden">
-      <h1>Show Savings Over Time</h1>
+      <h2 class="centered">Show Savings Over Time</h2>
 
       <div class="info">
-        <div><strong>Amount you pay now ($/kWh, Year 1):</strong> <span id="baselineDisplay">—</span></div>
+        <div><strong>Rate you pay PSEG now ($/kWh, Year 1):</strong> <span id="baselineDisplay"> </span></div>
         <div>
-          <strong>Usage:</strong>
-          <span id="usageMonthlyDisplay">—</span> kWh/mo
-          (<span id="usageAnnualDisplay">—</span> kWh/yr)
+          <strong>Monthly Usage:</strong>
+          <span id="usageMonthlyDisplay"> </span> kWh/mo
+          (<span id="usageAnnualDisplay"> </span> kWh/yr)
         </div>
       </div>
 
+      <!-- (8) vertical stacking of three fields -->
       <div class="stacked">
         <label>
-          Fixed comparison rate ($/kWh):
+          Enter Palmetto Fixed Rate ($/kWh):
           <input type="number" id="fixedRate" placeholder="e.g. 0.12" min="0.0001" step="0.0001" inputmode="decimal" />
         </label>
 
         <label>
-          Baseline growth (%/yr):
+          PSEG Average Annual Rate Increase (%/yr):
           <input type="number" id="growthRate" value="3.5" min="0" step="0.1" inputmode="decimal" />
         </label>
 
         <label>
-          Fixed growth (%/yr):
+          Palmetto Annual Escalator Rate (%/yr):
           <input type="number" id="fixedGrowthRate" value="0" min="-50" step="0.1" inputmode="decimal" />
         </label>
       </div>
 
       <div class="toggles">
         <label><input type="checkbox" id="showSavings" checked> Show Savings line</label>
-        <label><input type="checkbox" id="showBaseline" checked> Show Baseline cost line</label>
-        <label><input type="checkbox" id="showFixed" checked> Show Fixed cost line</label>
+        <label><input type="checkbox" id="showBaseline" checked> Show PSEG Rate</label>
+        <label><input type="checkbox" id="showFixed" checked> Show Palmetto Rate</label>
       </div>
 
       <div class="btn-row">
@@ -92,20 +101,20 @@
       <div class="result" id="savingsSummary"></div>
 
       <div class="chart-wrap">
-        <canvas id="savingsChart" width="400" height="280" aria-label="Savings over 25 years"></canvas>
+        <canvas id="savingsChart" width="400" height="320" aria-label="Savings over 25 years"></canvas>
       </div>
 
-      <h2>25-Year Table</h2>
+      <h3>25-Year Table</h3>
       <div class="table-wrap">
         <table id="yearTable">
           <thead>
             <tr>
               <th>Year</th>
-              <th>Escalated Amount you pay now ($/kWh)</th>
-              <th>Escalated Fixed $/kWh</th>
-              <th>Amount you pay now (Cost $/yr)</th>
-              <th>Fixed Cost ($/yr)</th>
-              <th>Annual Savings ($/yr)</th>
+              <th>PSEG Rate Increases ($/kWh)</th>
+              <th>Palmetto Rate ($/kWh)</th>
+              <th>Annual PSEG Cost ($)</th>
+              <th>Annual Palmetto Cost ($)</th>
+              <th>Annual Savings ($)</th>
               <th>Cumulative Savings ($)</th>
             </tr>
           </thead>

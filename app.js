@@ -1,35 +1,35 @@
-// ---------- Currency formatting ----------
+// ---------- Currency & number formatting ----------
 const USD = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
   maximumFractionDigits: 2
 });
+const NF = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }); // for kWh with commas
 
 // ---------- Global state ----------
-let baselineRate = null;   // $/kWh (Amount you pay now)
+let baselineRate = null;   // $/kWh (Rate you pay PSEG now)
 let usageMonthly = null;   // kWh per month
 let usageAnnual  = null;   // kWh per year
 let savingsChart = null;   // Chart.js instance
 
 const YEARS_DEFAULT = 25;
 
-// Every-5-year bubble years (1-indexed): 5,10,15,20,25
-const BUBBLE_YEARS = [5, 10, 15, 20, 25];
+// Bubble indices for savings amounts (years 1,5,10,15,20,25)
+const SAVINGS_BUBBLE_YEARS = [1, 5, 10, 15, 20, 25].map(y => y - 1);
 
 // ---------- Calculator ----------
 function calculate() {
-  const kwhMonthly = parseFloat(document.getElementById("kwh").value);        // monthly kWh (optional if annual given)
-  const kwhAnnualAlt = parseFloat(document.getElementById("annualKwh").value); // alternate annual kWh
-  const dollarsMonthly = parseFloat(document.getElementById("dollars").value); // monthly $
-
+  const dollarsMonthly = parseFloat(document.getElementById("dollars").value);
+  const kwhMonthly = parseFloat(document.getElementById("kwh").value);
+  const kwhAnnualAlt = parseFloat(document.getElementById("annualKwh").value);
   const resultDiv = document.getElementById("result");
 
   if (isNaN(dollarsMonthly) || dollarsMonthly <= 0) {
-    resultDiv.textContent = "Please enter the Dollar amount of your Monthly Utility Bill.";
+    resultDiv.textContent = "Please enter the Dollar amount of your Monthly PSEG Bill or your Monthly Balanced Billing Amount.";
     return;
   }
 
-  // Decide which usage to use: prefer annual if provided
+  // Prefer annual if provided, otherwise use monthly
   if (!isNaN(kwhAnnualAlt) && kwhAnnualAlt > 0) {
     usageAnnual  = kwhAnnualAlt;
     usageMonthly = kwhAnnualAlt / 12;
@@ -41,16 +41,16 @@ function calculate() {
     return;
   }
 
-  // $/kWh computed with matching periods: ($/mo * 12) / (kWh/yr)
+  // Normalize periods: ($/mo * 12) / (kWh/yr)
   baselineRate = (dollarsMonthly * 12) / usageAnnual;
 
-  resultDiv.textContent = `${USD.format(baselineRate)} per kWh (Amount you pay now)`;
+  resultDiv.textContent = `${USD.format(baselineRate)} per kWh (Rate you pay PSEG now)`;
 }
 
 function resetCalculator() {
+  document.getElementById("dollars").value = "";
   document.getElementById("kwh").value = "";
   document.getElementById("annualKwh").value = "";
-  document.getElementById("dollars").value = "";
   document.getElementById("result").textContent = "";
 }
 
@@ -71,12 +71,12 @@ function showScreen(which) {
     navCalc.classList.remove("active");
     navSav.classList.add("active");
 
-    // Initialize display
+    // Displays (with commas)
     document.getElementById("baselineDisplay").textContent = USD.format(baselineRate);
-    document.getElementById("usageMonthlyDisplay").textContent = usageMonthly.toFixed(2);
-    document.getElementById("usageAnnualDisplay").textContent  = usageAnnual.toFixed(2);
+    document.getElementById("usageMonthlyDisplay").textContent = NF.format(usageMonthly);
+    document.getElementById("usageAnnualDisplay").textContent  = NF.format(usageAnnual);
 
-    updateSavingsChart(false); // draw if inputs present
+    updateSavingsChart(false);
   } else {
     sav.classList.add("hidden");
     calc.classList.remove("hidden");
@@ -88,48 +88,46 @@ function showScreen(which) {
 function backToCalc() { showScreen("calc"); }
 
 // ---------- Savings Over Time ----------
-function computeSeries(years, growthPctBaseline, growthPctFixed) {
-  // (Growth starts in year 2 via exponent (y-1))
+function computeSeries(years, growthPctPSEG, growthPctPalmetto) {
+  // Growth starts in year 2 via exponent (y-1)
   const fixedRateInput = document.getElementById("fixedRate");
-  const fixed0 = parseFloat(fixedRateInput.value);
+  const palmetto0 = parseFloat(fixedRateInput.value);
 
   const labels = [];
-  const escalatedBaselineRate = [];
-  const escalatedFixedRate = [];
-  const baseCost = [];   // annual $
-  const fixedCost = [];  // annual $
-  const savings = [];    // annual $
-  const cumulative = []; // cumulative $
+  const psegRateEsc = [];    // $/kWh
+  const palmRateEsc = [];    // $/kWh
+  const psegAnnual = [];     // $
+  const palmAnnual = [];     // $
+  const savingsAnnual = [];  // $
+  const cumulative = [];     // $
 
   let cum = 0;
   for (let y = 1; y <= years; y++) {
-    const baseRateY  = baselineRate * Math.pow(1 + growthPctBaseline, y - 1); // y=1 => no growth
-    const fixedRateY = (isNaN(fixed0) || fixed0 <= 0)
-      ? 0
-      : fixed0 * Math.pow(1 + growthPctFixed, y - 1);
+    const psegRateY  = baselineRate * Math.pow(1 + growthPctPSEG, y - 1);
+    const palmRateY  = (isNaN(palmetto0) || palmetto0 <= 0) ? 0 : palmetto0 * Math.pow(1 + growthPctPalmetto, y - 1);
 
-    const bCost = baseRateY * usageAnnual;
-    const fCost = fixedRateY * usageAnnual;
-    const sav = bCost - fCost;
+    const psegCost = psegRateY * usageAnnual;
+    const palmCost = palmRateY * usageAnnual;
+    const sav = psegCost - palmCost;
 
     labels.push(`Year ${y}`);
-    escalatedBaselineRate.push(Number(baseRateY.toFixed(6)));
-    escalatedFixedRate.push(Number(fixedRateY.toFixed(6)));
-    baseCost.push(Number(bCost.toFixed(2)));
-    fixedCost.push(Number(fCost.toFixed(2)));
-    savings.push(Number(sav.toFixed(2)));
+    psegRateEsc.push(Number(psegRateY.toFixed(6)));
+    palmRateEsc.push(Number(palmRateY.toFixed(6)));
+    psegAnnual.push(Number(psegCost.toFixed(2)));
+    palmAnnual.push(Number(palmCost.toFixed(2)));
+    savingsAnnual.push(Number(sav.toFixed(2)));
     cum += sav;
     cumulative.push(Number(cum.toFixed(2)));
   }
 
-  return { labels, escalatedBaselineRate, escalatedFixedRate, baseCost, fixedCost, savings, cumulative, fixed0 };
+  return { labels, psegRateEsc, palmRateEsc, psegAnnual, palmAnnual, savingsAnnual, cumulative, palmetto0 };
 }
 
 function updateSavingsChart(requireInput = true) {
   const summary = document.getElementById("savingsSummary");
   const fixedRateInput = document.getElementById("fixedRate");
-  const growthEl = document.getElementById("growthRate");
-  const fixedGrowthEl = document.getElementById("fixedGrowthRate");
+  const growthPSEGEl = document.getElementById("growthRate");
+  const growthPalmEl = document.getElementById("fixedGrowthRate");
 
   if (!baselineRate || !usageAnnual) {
     summary.textContent = "Please calculate on the Calculator tab first.";
@@ -138,76 +136,64 @@ function updateSavingsChart(requireInput = true) {
     return;
   }
 
-  // Parse growth % -> decimals
-  const growthPctBaseline = Math.max(0, parseFloat(growthEl.value || "3.5")) / 100;
-  const growthPctFixed    = (parseFloat(fixedGrowthEl.value || "0") / 100); // can be negative
-  const fixed = parseFloat(fixedRateInput.value);
+  const growthPctPSEG = Math.max(0, parseFloat(growthPSEGEl.value || "3.5")) / 100;
+  const growthPctPalm = (parseFloat(growthPalmEl.value || "0") / 100); // can be negative
+  const palmetto0 = parseFloat(fixedRateInput.value);
 
-  if (requireInput && (isNaN(fixed) || fixed <= 0)) {
-    summary.textContent = "Enter a positive fixed comparison rate ($/kWh) to draw the graph.";
+  if (requireInput && (isNaN(palmetto0) || palmetto0 <= 0)) {
+    summary.textContent = "Enter a positive Palmetto Fixed Rate ($/kWh) to draw the graph.";
     destroyChartIfAny();
     clearYearTable();
     return;
   }
 
   const {
-    labels, escalatedBaselineRate, escalatedFixedRate,
-    baseCost, fixedCost, savings, cumulative
-  } = computeSeries(YEARS_DEFAULT, growthPctBaseline, growthPctFixed);
+    labels, psegRateEsc, palmRateEsc, psegAnnual, palmAnnual, savingsAnnual, cumulative
+  } = computeSeries(YEARS_DEFAULT, growthPctPSEG, growthPctPalm);
 
-  // Summary (only if fixed entered)
-  if (!isNaN(fixed) && fixed > 0) {
+  if (!isNaN(palmetto0) && palmetto0 > 0) {
     const total = cumulative[cumulative.length - 1] || 0;
     summary.innerHTML =
       `Cumulative savings over ${YEARS_DEFAULT} years ` +
-      `(Amount you pay now growth ${(growthPctBaseline * 100).toFixed(1)}%/yr ` +
-      `vs Fixed growth ${(growthPctFixed * 100).toFixed(1)}%/yr): ` +
+      `(PSEG ${(growthPctPSEG * 100).toFixed(1)}%/yr vs Palmetto ${(growthPctPalm * 100).toFixed(1)}%/yr): ` +
       `<strong>${USD.format(total)}</strong>`;
   } else {
-    summary.textContent = "Awaiting fixed rate to generate savings graph…";
+    summary.textContent = "Awaiting Palmetto Fixed Rate to generate savings graph…";
   }
 
-  // Build datasets from toggles
+  // Datasets with requested labels (16/17)
   const ds = [];
-  const showSavings = document.getElementById("showSavings").checked;
-  const showBaseline = document.getElementById("showBaseline").checked;
-  const showFixed = document.getElementById("showFixed").checked;
-
-  if (showSavings) {
+  if (document.getElementById("showSavings").checked) {
     ds.push({
-      label: 'Annual Savings ($/yr)',
-      data: savings,
+      label: 'Annual Savings ($)',
+      data: savingsAnnual,
       tension: 0.25,
       borderWidth: 2,
       pointRadius: 2
     });
   }
-  if (showBaseline) {
+  if (document.getElementById("showBaseline").checked) {
     ds.push({
-      label: 'Amount you pay now (Cost $/yr)',
-      data: baseCost,
+      label: 'Amount you pay PSEG ($/yr)',
+      data: psegAnnual,
       tension: 0.2,
       borderWidth: 2,
       pointRadius: 0
     });
   }
-  if (showFixed) {
+  if (document.getElementById("showFixed").checked) {
     ds.push({
-      label: 'Fixed Cost ($/yr)',
-      data: fixedCost,
+      label: 'Palmetto Rate ($/yr)',
+      data: palmAnnual,
       tension: 0.2,
       borderWidth: 2,
       pointRadius: 0
     });
   }
 
-  // Precompute monthly baseline cost for the bubble labels
-  const baseMonthly = baseCost.map(v => v / 12);
+  drawSavingsChart(labels, ds, savingsAnnual);
 
-  drawSavingsChart(labels, ds, baseCost, baseMonthly);
-
-  // Populate table with currency formatting
-  fillYearTable(labels, escalatedBaselineRate, escalatedFixedRate, baseCost, fixedCost, savings, cumulative);
+  fillYearTable(labels, psegRateEsc, palmRateEsc, psegAnnual, palmAnnual, savingsAnnual, cumulative);
 }
 
 function destroyChartIfAny() {
@@ -217,52 +203,49 @@ function destroyChartIfAny() {
   }
 }
 
-// Custom plugin to draw currency bubbles above the baseline every 5 years
-const BubblePlugin = {
-  id: 'bubblePlugin',
+// Custom plugin: draw savings bubbles (years 1,5,10,15,20,25). Year 25 bigger + bold.
+const SavingsBubblePlugin = {
+  id: 'savingsBubblePlugin',
   afterDatasetsDraw(chart, args, pluginOptions) {
-    const { ctx, chartArea, scales } = chart;
-    const xScale = scales.x;
-    const yScale = scales.y;
+    const { ctx, scales, data } = chart;
+    const x = scales.x, y = scales.y;
+    const savingsArray = pluginOptions?.savingsArray || [];
     const indices = pluginOptions?.indices || [];
-    const values  = pluginOptions?.values  || []; // baseline monthly $ by year (array length = labels)
-    if (!indices.length || !values.length) return;
+
+    // Find the "Annual Savings ($)" dataset index
+    const dsIndex = chart.data.datasets.findIndex(d => d.label && d.label.startsWith('Annual Savings'));
+    if (dsIndex === -1) return;
 
     ctx.save();
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
+    indices.forEach((i) => {
+      if (i < 0 || i >= savingsArray.length) return;
+      const xPix = x.getPixelForValue(i);
+      const yVal = savingsArray[i];
+      const yPix = y.getPixelForValue(yVal);
 
-    indices.forEach((yearIndex) => {
-      if (yearIndex < 0 || yearIndex >= values.length) return;
-      const x = xScale.getPixelForValue(yearIndex);
-      const yVal = pluginOptions.baseLineArray?.[yearIndex];
-      if (typeof yVal !== 'number') return;
+      const isYear25 = (i === 24);
+      const txt = USD.format(yVal);
+      ctx.font = isYear25 ? 'bold 13px Arial' : '12px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
 
-      const y = yScale.getPixelForValue(yVal);
-      const text = `${USD.format(values[yearIndex])}/mo`;
-
-      // Bubble dims
-      const paddingX = 8;
-      const paddingY = 6;
-      const textW = ctx.measureText(text).width;
+      // Bubble box
+      const paddingX = 8, paddingY = 6;
+      const textW = ctx.measureText(txt).width;
       const boxW = textW + paddingX * 2;
-      const boxH = 24;
-      const boxX = x - boxW / 2;
-      const boxY = y - 10 - boxH; // 10px above the point
+      const boxH = isYear25 ? 28 : 24;
+      const boxX = xPix - boxW / 2;
+      const boxY = yPix - 10 - boxH;
 
-      // Rounded rectangle
       const radius = 10;
-      ctx.fillStyle = 'rgba(39, 174, 96, 0.9)'; // green-ish bubble
+      ctx.fillStyle = 'rgba(0, 122, 255, 0.9)'; // blue bubble for savings
       ctx.beginPath();
       roundedRect(ctx, boxX, boxY, boxW, boxH, radius);
       ctx.fill();
 
-      // Text
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(text, x, boxY + boxH - 8);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(txt, xPix, boxY + boxH - (isYear25 ? 9 : 8));
     });
-
     ctx.restore();
   }
 };
@@ -277,12 +260,9 @@ function roundedRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function drawSavingsChart(labels, datasets, baseCostYearly, baseMonthly) {
+function drawSavingsChart(labels, datasets, savingsAnnual) {
   const ctx = document.getElementById("savingsChart").getContext("2d");
   destroyChartIfAny();
-
-  // Map bubble years (1,5,10,15,20,25...) to zero-based indices
-  const bubbleIdx = BUBBLE_YEARS.map(y => y - 1);
 
   savingsChart = new Chart(ctx, {
     type: 'line',
@@ -292,10 +272,9 @@ function drawSavingsChart(labels, datasets, baseCostYearly, baseMonthly) {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: true },
-        bubblePlugin: {
-          indices: bubbleIdx,
-          values: baseMonthly,
-          baseLineArray: baseCostYearly
+        savingsBubblePlugin: {
+          indices: SAVINGS_BUBBLE_YEARS,
+          savingsArray: savingsAnnual
         }
       },
       scales: {
@@ -303,7 +282,7 @@ function drawSavingsChart(labels, datasets, baseCostYearly, baseMonthly) {
         y: { title: { display: true, text: 'Dollars ($/yr)' } }
       }
     },
-    plugins: [BubblePlugin] // register custom plugin per-chart
+    plugins: [SavingsBubblePlugin]
   });
 }
 
@@ -313,7 +292,7 @@ function clearYearTable() {
   if (tbody) tbody.innerHTML = "";
 }
 
-function fillYearTable(labels, escalatedBaselineRate, escalatedFixedRate, baseCost, fixedCost, savings, cumulative) {
+function fillYearTable(labels, psegRateEsc, palmRateEsc, psegAnnual, palmAnnual, savingsAnnual, cumulative) {
   const tbody = document.querySelector("#yearTable tbody");
   if (!tbody) return;
   tbody.innerHTML = "";
@@ -321,11 +300,11 @@ function fillYearTable(labels, escalatedBaselineRate, escalatedFixedRate, baseCo
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${i + 1}</td>
-      <td>${USD.format(escalatedBaselineRate[i])}</td>
-      <td>${USD.format(escalatedFixedRate[i])}</td>
-      <td>${USD.format(baseCost[i])}</td>
-      <td>${USD.format(fixedCost[i])}</td>
-      <td>${USD.format(savings[i])}</td>
+      <td>${psegRateEsc[i].toFixed(6)}</td>
+      <td>${palmRateEsc[i].toFixed(6)}</td>
+      <td>${USD.format(psegAnnual[i])}</td>
+      <td>${USD.format(palmAnnual[i])}</td>
+      <td>${USD.format(savingsAnnual[i])}</td>
       <td>${USD.format(cumulative[i])}</td>
     `;
     tbody.appendChild(tr);
@@ -333,31 +312,30 @@ function fillYearTable(labels, escalatedBaselineRate, escalatedFixedRate, baseCo
 }
 
 function exportCsv() {
-  const growthEl = document.getElementById("growthRate");
-  const fixedGrowthEl = document.getElementById("fixedGrowthRate");
-  const growthPctBaseline = Math.max(0, parseFloat(growthEl.value || "3.5")) / 100;
-  const growthPctFixed = (parseFloat(fixedGrowthEl.value || "0") / 100);
+  const growthPSEGEl = document.getElementById("growthRate");
+  const growthPalmEl = document.getElementById("fixedGrowthRate");
+  const growthPctPSEG = Math.max(0, parseFloat(growthPSEGEl.value || "3.5")) / 100;
+  const growthPctPalm = (parseFloat(growthPalmEl.value || "0") / 100);
 
   if (!baselineRate || !usageAnnual) {
     alert("Please calculate first.");
     return;
   }
   const {
-    labels, escalatedBaselineRate, escalatedFixedRate,
-    baseCost, fixedCost, savings, cumulative
-  } = computeSeries(YEARS_DEFAULT, growthPctBaseline, growthPctFixed);
+    labels, psegRateEsc, palmRateEsc, psegAnnual, palmAnnual, savingsAnnual, cumulative
+  } = computeSeries(YEARS_DEFAULT, growthPctPSEG, growthPctPalm);
 
   const rows = [
-    ["Year", "Amount you pay now $/kWh", "Fixed $/kWh", "Amount you pay now (Cost $/yr)", "Fixed Cost ($/yr)", "Annual Savings ($/yr)", "Cumulative Savings ($)"],
+    ["Year", "PSEG Rate Increases ($/kWh)", "Palmetto Rate ($/kWh)", "Annual PSEG Cost ($)", "Annual Palmetto Cost ($)", "Annual Savings ($)", "Cumulative Savings ($)"],
   ];
   for (let i = 0; i < labels.length; i++) {
     rows.push([
       (i + 1).toString(),
-      escalatedBaselineRate[i].toFixed(6),
-      escalatedFixedRate[i].toFixed(6),
-      baseCost[i].toFixed(2),
-      fixedCost[i].toFixed(2),
-      savings[i].toFixed(2),
+      psegRateEsc[i].toFixed(6),
+      palmRateEsc[i].toFixed(6),
+      psegAnnual[i].toFixed(2),
+      palmAnnual[i].toFixed(2),
+      savingsAnnual[i].toFixed(2),
       cumulative[i].toFixed(2)
     ]);
   }
@@ -367,7 +345,7 @@ function exportCsv() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `savings_${YEARS_DEFAULT}yrs.csv`;
+  a.download = `savings_25yrs.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -403,12 +381,9 @@ function attachAutoClear(selector, clearFn) {
     input.addEventListener("input", clearFn);
   });
 }
-// Calculator clears
-attachAutoClear("#kwh, #annualKwh, #dollars", () => {
+attachAutoClear("#dollars, #kwh, #annualKwh", () => {
   document.getElementById("result").textContent = "";
 });
-
-// Savings inputs trigger live updates
 ["fixedRate", "growthRate", "fixedGrowthRate"].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener("input", () => updateSavingsChart(false));
