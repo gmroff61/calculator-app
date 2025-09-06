@@ -4,28 +4,107 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>$ / kWh Calculator</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.png" type="image/png">
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Chart.js for the savings graph -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="app">
-    <h1>$ / kWh Calculator</h1>
 
-    <label>
-      kWh Usage:
-      <input type="number" id="kwh" placeholder="Enter kWh" min="0.01" step="0.01" inputmode="decimal" />
-    </label>
+    <!-- NAV HEADER -->
+    <div class="topbar">
+      <button id="nav-calc" class="tab active" onclick="showScreen('calc')">Calculator</button>
+      <button id="nav-savings" class="tab" onclick="showScreen('savings')">Show Savings Over Time</button>
+    </div>
 
-    <label>
-      Dollar Amount:
-      <input type="number" id="dollars" placeholder="Enter $" min="0.01" step="0.01" inputmode="decimal" />
-    </label>
+    <!-- CALCULATOR SCREEN -->
+    <section id="calc-screen">
+      <h1>$ / kWh Calculator</h1>
 
-    <button onclick="calculate()">Calculate</button>
-    <button onclick="resetCalculator()" class="reset-btn">Reset</button>
+      <label>
+        kWh Usage (annual):
+        <input type="number" id="kwh" placeholder="Enter kWh/yr" min="0.01" step="0.01" inputmode="decimal" />
+      </label>
 
-    <div id="result"></div>
+      <label>
+        Dollar Amount:
+        <input type="number" id="dollars" placeholder="Enter $" min="0.01" step="0.01" inputmode="decimal" />
+      </label>
 
-    <button onclick="goNext()">Next (compare)</button>
+      <button onclick="calculate()">Calculate</button>
+      <button onclick="resetCalculator()" class="secondary">Reset</button>
+
+      <div id="result" class="result"></div>
+    </section>
+
+    <!-- SAVINGS OVER TIME SCREEN -->
+    <section id="savings-screen" class="hidden">
+      <h1>Show Savings Over Time</h1>
+
+      <div class="info">
+        <div><strong>Baseline $/kWh (Year 1):</strong> <span id="baselineDisplay">—</span></div>
+        <div><strong>Annual usage (kWh):</strong> <span id="usageDisplay">—</span></div>
+      </div>
+
+      <div class="grid">
+        <label>
+          Fixed comparison rate ($/kWh):
+          <input type="number" id="fixedRate" placeholder="e.g. 0.12" min="0.0001" step="0.0001" inputmode="decimal" />
+        </label>
+
+        <label>
+          Baseline growth (%/yr):
+          <input type="number" id="growthRate" value="3.5" min="0" step="0.1" inputmode="decimal" />
+        </label>
+
+        <label>
+          Fixed growth (%/yr):
+          <input type="number" id="fixedGrowthRate" value="0" min="-50" step="0.1" inputmode="decimal" />
+        </label>
+      </div>
+
+      <div class="toggles">
+        <label><input type="checkbox" id="showSavings" checked> Show Savings line</label>
+        <label><input type="checkbox" id="showBaseline"> Show Baseline cost line</label>
+        <label><input type="checkbox" id="showFixed"> Show Fixed cost line</label>
+      </div>
+
+      <div class="btn-row">
+        <button onclick="updateSavingsChart()">Update Graph</button>
+        <button class="secondary" onclick="downloadChartPng()">Download Chart (PNG)</button>
+        <button class="secondary" onclick="exportCsv()">Export CSV (25 years)</button>
+        <button onclick="backToCalc()" class="ghost">Back to Calculator</button>
+      </div>
+
+      <div class="result" id="savingsSummary"></div>
+
+      <div class="chart-wrap">
+        <canvas id="savingsChart" width="400" height="280" aria-label="Savings over 25 years"></canvas>
+      </div>
+
+      <h2>25-Year Table</h2>
+      <div class="table-wrap">
+        <table id="yearTable">
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th>Escalated Baseline $/kWh</th>
+              <th>Escalated Fixed $/kWh</th>
+              <th>Baseline Cost ($)</th>
+              <th>Fixed Cost ($)</th>
+              <th>Annual Savings ($)</th>
+              <th>Cumulative Savings ($)</th>
+            </tr>
+          </thead>
+          <tbody><!-- rows appended here --></tbody>
+        </table>
+      </div>
+    </section>
+
   </div>
 
   <script src="app.js"></script>
