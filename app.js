@@ -31,7 +31,6 @@ function calculate() {
     return;
   }
 
-  // Prefer annual if provided, otherwise use monthly
   if (!isNaN(kwhAnnualAlt) && kwhAnnualAlt > 0) {
     usageAnnual  = kwhAnnualAlt;
     usageMonthly = kwhAnnualAlt / 12;
@@ -43,10 +42,8 @@ function calculate() {
     return;
   }
 
-  // Normalize periods: ($/mo * 12) / (kWh/yr)
   baselineRate = (dollarsMonthly * 12) / usageAnnual;
 
-  // Put “$/kWh” at the END of the line, as requested
   resultDiv.textContent = `Rate you pay PSEG now: ${USD.format(baselineRate)} $ / kWh`;
 }
 
@@ -74,7 +71,6 @@ function showScreen(which) {
     navCalc.classList.remove("active");
     navSav.classList.add("active");
 
-    // Displays (with commas)
     document.getElementById("baselineDisplay").textContent = USD.format(baselineRate);
     document.getElementById("usageMonthlyDisplay").textContent = NF.format(usageMonthly);
     document.getElementById("usageAnnualDisplay").textContent  = NF.format(usageAnnual);
@@ -92,17 +88,11 @@ function backToCalc() { showScreen("calc"); }
 
 // ========== Savings Over Time ==========
 function computeSeries(years, growthPctPSEG, growthPctPalmetto) {
-  // Growth starts in year 2 via exponent (y-1)
   const fixedRateInput = document.getElementById("fixedRate");
   const palmetto0 = parseFloat(fixedRateInput.value);
 
-  const labels = [];
-  const psegRateEsc = [];    // $/kWh
-  const palmRateEsc = [];    // $/kWh
-  const psegAnnual = [];     // $
-  const palmAnnual = [];     // $
-  const savingsAnnual = [];  // $
-  const cumulative = [];     // $
+  const labels = [], psegRateEsc = [], palmRateEsc = [],
+        psegAnnual = [], palmAnnual = [], savingsAnnual = [], cumulative = [];
 
   let cum = 0;
   for (let y = 1; y <= years; y++) {
@@ -122,7 +112,6 @@ function computeSeries(years, growthPctPSEG, growthPctPalmetto) {
     cum += sav;
     cumulative.push(Number(cum.toFixed(2)));
   }
-
   return { labels, psegRateEsc, palmRateEsc, psegAnnual, palmAnnual, savingsAnnual, cumulative, palmetto0 };
 }
 
@@ -139,9 +128,8 @@ function updateSavingsChart(requireInput = true) {
     return;
   }
 
-  // Parse growth % -> decimals (do not round for display)
   const growthPctPSEG = Math.max(0, parseFloat(growthPSEGEl.value || "3.5")) / 100;
-  const growthPctPalm = (parseFloat(growthPalmEl.value || "0") / 100); // can be negative
+  const growthPctPalm = (parseFloat(growthPalmEl.value || "0") / 100);
   const psegGrowthStr = (growthPSEGEl.value || "3.5");
   const palmGrowthStr = (growthPalmEl.value || "0");
 
@@ -154,9 +142,8 @@ function updateSavingsChart(requireInput = true) {
     return;
   }
 
-  const {
-    labels, psegRateEsc, palmRateEsc, psegAnnual, palmAnnual, savingsAnnual, cumulative
-  } = computeSeries(YEARS_DEFAULT, growthPctPSEG, growthPctPalm);
+  const { labels, psegRateEsc, palmRateEsc, psegAnnual, palmAnnual, savingsAnnual, cumulative } =
+    computeSeries(YEARS_DEFAULT, growthPctPSEG, growthPctPalm);
 
   if (!isNaN(palmetto0) && palmetto0 > 0) {
     const total = cumulative[cumulative.length - 1] || 0;
@@ -168,7 +155,6 @@ function updateSavingsChart(requireInput = true) {
     summary.textContent = "Awaiting Palmetto Fixed Rate to generate savings graph…";
   }
 
-  // Datasets with requested colors/labels
   const ds = [];
   if (document.getElementById("showSavings").checked) {
     ds.push({
@@ -177,7 +163,7 @@ function updateSavingsChart(requireInput = true) {
       tension: 0.25,
       borderWidth: 2,
       pointRadius: 2,
-      borderColor: '#007aff',   // blue
+      borderColor: '#007aff',
       backgroundColor: 'rgba(0,122,255,0.1)'
     });
   }
@@ -188,7 +174,7 @@ function updateSavingsChart(requireInput = true) {
       tension: 0.2,
       borderWidth: 2,
       pointRadius: 0,
-      borderColor: '#d63031',   // red
+      borderColor: '#d63031',
       backgroundColor: 'rgba(214,48,49,0.08)'
     });
   }
@@ -199,13 +185,12 @@ function updateSavingsChart(requireInput = true) {
       tension: 0.2,
       borderWidth: 2,
       pointRadius: 0,
-      borderColor: '#27ae60',   // green
+      borderColor: '#27ae60',
       backgroundColor: 'rgba(39,174,96,0.08)'
     });
   }
 
   drawSavingsChart(labels, ds, savingsAnnual, psegAnnual);
-
   fillYearTable(labels, psegRateEsc, palmRateEsc, psegAnnual, palmAnnual, savingsAnnual, cumulative);
 }
 
@@ -217,8 +202,6 @@ function destroyChartIfAny() {
 }
 
 // ========== Custom Plugins (smaller bubbles) ==========
-
-// Savings bubbles (years 1,5,10,15,20,25). Year 25 bigger + bold + edge-clipping fix.
 const SavingsBubblePlugin = {
   id: 'savingsBubblePlugin',
   afterDatasetsDraw(chart, args, pluginOptions) {
@@ -227,7 +210,6 @@ const SavingsBubblePlugin = {
     const savingsArray = pluginOptions?.savingsArray || [];
     const indices = pluginOptions?.indices || [];
 
-    // Find dataset for "Annual Savings ($)"
     const dsIndex = chart.data.datasets.findIndex(d => d.label && d.label.startsWith('Annual Savings'));
     if (dsIndex === -1) return;
 
@@ -239,35 +221,33 @@ const SavingsBubblePlugin = {
 
       const isYear25 = (i === 24);
       const txt = USD.format(savingsArray[i]);
-      ctx.font = isYear25 ? 'bold 12px Arial' : '11px Arial'; // smaller font
+      ctx.font = isYear25 ? 'bold 10px Arial' : '10px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
 
-      const paddingX = 6, paddingY = 4; // tighter padding
+      const paddingX = 4, paddingY = 3;
       const textW = ctx.measureText(txt).width;
       const boxW = textW + paddingX * 2;
-      const boxH = isYear25 ? 22 : 18;  // smaller bubbles
+      const boxH = 16;  // trimmed bubble height
       let boxX = xPix - boxW / 2;
-      let boxY = yPix - 10 - boxH; // try above
+      let boxY = yPix - 10 - boxH;
 
-      // Edge/clipping adjustments
-      if (boxY < chartArea.top + 4) boxY = yPix + 10;                 // below if too high
-      if (boxX < chartArea.left + 4) boxX = chartArea.left + 4;       // clamp left
-      if (boxX + boxW > chartArea.right - 4) boxX = chartArea.right - 4 - boxW; // clamp right
+      if (boxY < chartArea.top + 4) boxY = yPix + 10;
+      if (boxX < chartArea.left + 4) boxX = chartArea.left + 4;
+      if (boxX + boxW > chartArea.right - 4) boxX = chartArea.right - 4 - boxW;
 
-      ctx.fillStyle = 'rgba(0,122,255,0.9)'; // blue bubble
+      ctx.fillStyle = 'rgba(0,122,255,0.9)';
       ctx.beginPath();
-      roundedRect(ctx, boxX, boxY, boxW, boxH, 10);
+      roundedRect(ctx, boxX, boxY, boxW, boxH, 8);
       ctx.fill();
 
       ctx.fillStyle = '#fff';
-      ctx.fillText(txt, xPix, boxY + boxH - (isYear25 ? 7 : 6));
+      ctx.fillText(txt, xPix, boxY + boxH - 4);
     });
     ctx.restore();
   }
 };
 
-// PSEG monthly bubbles above the red PSEG line (years 5,10,15,20,25) with clipping fix.
 const PsegMonthlyBubblePlugin = {
   id: 'psegMonthlyBubblePlugin',
   afterDatasetsDraw(chart, args, pluginOptions) {
@@ -277,45 +257,40 @@ const PsegMonthlyBubblePlugin = {
     const annualArray = pluginOptions?.annualArray || [];
     if (!indices.length || !annualArray.length) return;
 
-    // Ensure the PSEG dataset exists (label starts with Amount you pay PSEG)
     const psegIndex = chart.data.datasets.findIndex(d => d.label && d.label.startsWith('Amount you pay PSEG'));
     if (psegIndex === -1) return;
 
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.font = '11px Arial'; // smaller font
+    ctx.font = '10px Arial';
 
     indices.forEach((i) => {
       if (i < 0 || i >= annualArray.length) return;
-      const monthlyValue = annualArray[i] / 12;         // convert annual PSEG cost to monthly
+      const monthlyValue = annualArray[i] / 12;
       const xPix = x.getPixelForValue(i);
-      const yPix = y.getPixelForValue(annualArray[i]);  // anchor at the PSEG annual point
+      const yPix = y.getPixelForValue(annualArray[i]);
 
       const text = `${USD.format(monthlyValue)}/mo`;
-      const paddingX = 6, paddingY = 4; // tighter padding
+      const paddingX = 4, paddingY = 3;
       const textW = ctx.measureText(text).width;
       const boxW = textW + paddingX * 2;
-      const boxH = 18;   // smaller bubbles
+      const boxH = 16;
       let boxX = xPix - boxW / 2;
-      let boxY = yPix - 10 - boxH; // above the point
+      let boxY = yPix - 10 - boxH;
 
-      // Edge/clipping fix: keep on-screen
-      if (boxY < chartArea.top + 4) boxY = yPix + 10;               // put below if too high
-      if (boxX < chartArea.left + 4) boxX = chartArea.left + 4;     // clamp left
-      if (boxX + boxW > chartArea.right - 4) boxX = chartArea.right - 4 - boxW; // clamp right
+      if (boxY < chartArea.top + 4) boxY = yPix + 10;
+      if (boxX < chartArea.left + 4) boxX = chartArea.left + 4;
+      if (boxX + boxW > chartArea.right - 4) boxX = chartArea.right - 4 - boxW;
 
-      // Draw bubble (red to match PSEG line)
       ctx.fillStyle = 'rgba(214,48,49,0.9)';
       ctx.beginPath();
-      roundedRect(ctx, boxX, boxY, boxW, boxH, 10);
+      roundedRect(ctx, boxX, boxY, boxW, boxH, 8);
       ctx.fill();
 
-      // Text
       ctx.fillStyle = '#fff';
-      ctx.fillText(text, xPix, boxY + boxH - 6);
+      ctx.fillText(text, xPix, boxY + boxH - 4);
     });
-
     ctx.restore();
   }
 };
@@ -343,14 +318,8 @@ function drawSavingsChart(labels, datasets, savingsAnnual, psegAnnual) {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: true },
-        savingsBubblePlugin: {
-          indices: SAVINGS_BUBBLE_YEARS, // 1,5,10,15,20,25
-          savingsArray: savingsAnnual
-        },
-        psegMonthlyBubblePlugin: {
-          indices: PSEG_BUBBLE_YEARS,    // 5,10,15,20,25
-          annualArray: psegAnnual
-        }
+        savingsBubblePlugin: { indices: SAVINGS_BUBBLE_YEARS, savingsArray: savingsAnnual },
+        psegMonthlyBubblePlugin: { indices: PSEG_BUBBLE_YEARS, annualArray: psegAnnual }
       },
       scales: {
         x: { title: { display: true, text: 'Year' } },
@@ -396,9 +365,8 @@ function exportCsv() {
     alert("Please calculate first.");
     return;
   }
-  const {
-    labels, psegRateEsc, palmRateEsc, psegAnnual, palmAnnual, savingsAnnual, cumulative
-  } = computeSeries(YEARS_DEFAULT, growthPctPSEG, growthPctPalm);
+  const { labels, psegRateEsc, palmRateEsc, psegAnnual, palmAnnual, savingsAnnual, cumulative } =
+    computeSeries(YEARS_DEFAULT, growthPctPSEG, growthPctPalm);
 
   const rows = [
     ["Year", "PSEG Rate Increases ($/kWh)", "Palmetto Rate ($/kWh)", "Annual PSEG Cost ($)", "Annual Palmetto Cost ($)", "Annual Savings ($)", "Cumulative Savings ($)"],
@@ -440,30 +408,4 @@ function downloadChartPng() {
 }
 
 // ========== Keyboard: Enter triggers the right action ==========
-document.addEventListener("keydown", function (event) {
-  if (event.key !== "Enter") return;
-  const calcVisible = !document.getElementById("calc-screen").classList.contains("hidden");
-  if (calcVisible) {
-    calculate();
-  } else {
-    updateSavingsChart();
-  }
-});
-
-// ========== Reactivity ==========
-function attachAutoClear(selector, clearFn) {
-  document.querySelectorAll(selector).forEach((input) => {
-    input.addEventListener("input", clearFn);
-  });
-}
-attachAutoClear("#dollars, #kwh, #annualKwh", () => {
-  document.getElementById("result").textContent = "";
-});
-["fixedRate", "growthRate", "fixedGrowthRate"].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener("input", () => updateSavingsChart(false));
-});
-["showSavings", "showBaseline", "showFixed"].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener("change", () => updateSavingsChart(false));
-});
+document.addEvent
